@@ -65,7 +65,9 @@ let state = {
 /* ===============================
    描画
 ================================ */
-function render() {
+  function render() {
+
+  // フェーズ表示
   document.getElementById("phase").innerText =
     `フェーズ：${state.phase}`;
 
@@ -73,6 +75,36 @@ function render() {
     state.phase === PHASE.PREPARE || state.phase === PHASE.RESULT
       ? ""
       : `日数：${state.day}日目`;
+
+  // ===== ボタン制御 =====
+  const startBtn = document.getElementById("startBtn");
+  const nextBtn  = document.getElementById("nextBtn");
+  const endBtn   = document.getElementById("endBtn");
+
+  if (state.phase === PHASE.PREPARE) {
+    // 準備中
+    startBtn.style.display = "inline-block";
+    nextBtn.style.display  = "none";
+    endBtn.style.display   = "none";
+  }
+
+  else if (
+    state.phase === PHASE.MORNING ||
+    state.phase === PHASE.VOTE ||
+    state.phase === PHASE.NIGHT
+  ) {
+    // ゲーム中
+    startBtn.style.display = "none";
+    nextBtn.style.display  = "inline-block";
+    endBtn.style.display   = "inline-block";
+  }
+
+  else if (state.phase === PHASE.RESULT) {
+    // 終了
+    startBtn.style.display = "inline-block";
+    nextBtn.style.display  = "none";
+    endBtn.style.display   = "none";
+  }
 }
 
 /* ===============================
@@ -150,47 +182,7 @@ function endGame(message) {
 
 /* 初期描画 */
 render(
-  function render() {
 
-  // フェーズ表示
-  document.getElementById("phase").innerText =
-    `フェーズ：${state.phase}`;
-
-  document.getElementById("day").innerText =
-    state.phase === PHASE.PREPARE || state.phase === PHASE.RESULT
-      ? ""
-      : `日数：${state.day}日目`;
-
-  // ===== ボタン制御 =====
-  const startBtn = document.getElementById("startBtn");
-  const nextBtn  = document.getElementById("nextBtn");
-  const endBtn   = document.getElementById("endBtn");
-
-  if (state.phase === PHASE.PREPARE) {
-    // 準備中
-    startBtn.style.display = "inline-block";
-    nextBtn.style.display  = "none";
-    endBtn.style.display   = "none";
-  }
-
-  else if (
-    state.phase === PHASE.MORNING ||
-    state.phase === PHASE.VOTE ||
-    state.phase === PHASE.NIGHT
-  ) {
-    // ゲーム中
-    startBtn.style.display = "none";
-    nextBtn.style.display  = "inline-block";
-    endBtn.style.display   = "inline-block";
-  }
-
-  else if (state.phase === PHASE.RESULT) {
-    // 終了
-    startBtn.style.display = "inline-block";
-    nextBtn.style.display  = "none";
-    endBtn.style.display   = "none";
-  }
-}
 );
 
 </script>
