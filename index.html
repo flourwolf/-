@@ -26,6 +26,7 @@ input, button, textarea {
 }
 
 .player { margin: 5px; }
+.dead { color: gray; }
 </style>
 </head>
 
@@ -59,6 +60,22 @@ input, button, textarea {
 
   <h3>PL用URL</h3>
   <textarea id="url" rows="3"></textarea>
+
+</div>
+
+<!-- ===== 共通ゲームUI（追加） ===== -->
+<div id="gameUI" class="box">
+
+  <h2>ゲーム情報</h2>
+
+  <h3>プレイヤー一覧</h3>
+  <div id="playerList"></div>
+
+  <h3>役職一覧（GM専用）</h3>
+  <div id="roleList"></div>
+
+  <h3>PL用URL</h3>
+  <textarea id="urlDisplay" rows="3" readonly></textarea>
 
 </div>
 
@@ -136,11 +153,45 @@ function render() {
 
   // ===== 準備UI制御 =====
   const prepareUI = document.getElementById("prepareUI");
+  prepareUI.style.display =
+    state.phase === PHASE.PREPARE ? "block" : "none";
 
-  if (state.phase === PHASE.PREPARE) {
-    prepareUI.style.display = "block";
+  // ===== 共通UI制御（追加） =====
+  const gameUI = document.getElementById("gameUI");
+
+  if (
+    state.phase === PHASE.MORNING ||
+    state.phase === PHASE.VOTE ||
+    state.phase === PHASE.NIGHT
+  ) {
+    gameUI.style.display = "block";
   } else {
-    prepareUI.style.display = "none";
+    gameUI.style.display = "none";
+  }
+
+  // ===== 共通UIの中身（追加） =====
+  if (state.players.length > 0) {
+
+    // プレイヤー一覧
+    const playerList = document.getElementById("playerList");
+    playerList.innerHTML = "";
+
+    state.players.forEach((p, i) => {
+      const cls = state.alive[i] ? "" : "dead";
+      playerList.innerHTML += `<div class="${cls}">${i+1}番：${p}</div>`;
+    });
+
+    // 役職一覧
+    const roleList = document.getElementById("roleList");
+    roleList.innerHTML = "";
+
+    state.players.forEach((p, i) => {
+      roleList.innerHTML += `${p} → ${state.roles[i]}<br>`;
+    });
+
+    // URL表示（使い回し）
+    document.getElementById("urlDisplay").value =
+      document.getElementById("url").value;
   }
 }
 
@@ -157,7 +208,6 @@ function createInputs() {
   }
 }
 
-/* 初期生成 */
 createInputs();
 
 /* ===============================
@@ -184,17 +234,14 @@ function generate() {
 
   const names = Array.from(inputs).map(i => i.value.trim());
 
-  // ===== バリデーション =====
   if (!seedText) return alert("シード値を入力してください");
   if (names.includes("")) return alert("名前をすべて入力してください");
   if (new Set(names).size !== names.length) return alert("名前が重複しています");
 
-  // シード
   let seed = 0;
   for (let c of seedText) seed += c.charCodeAt(0);
   const rand = seededRandom(seed);
 
-  // 役職構成
   const roleConfig = {
     5:["村人","村人","村人","占い師","人狼"],
     6:["村人","村人","村人","村人","占い師","人狼"],
@@ -205,18 +252,15 @@ function generate() {
 
   let roles = [...roleConfig[count]];
 
-  // シャッフル
   for (let i = roles.length - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1));
     [roles[i], roles[j]] = [roles[j], roles[i]];
   }
 
-  // stateに保存（重要）
   state.players = names;
   state.roles = roles;
   state.alive = names.map(() => true);
 
-  // 表示
   const result = document.getElementById("result");
   result.innerHTML = "";
 
@@ -224,7 +268,6 @@ function generate() {
     result.innerHTML += `${names[i]} → ${roles[i]}<br>`;
   }
 
-  // URL生成
   const params = new URLSearchParams();
   params.set("seed", seedText);
   params.set("names", names.join(","));
@@ -259,15 +302,12 @@ function nextPhase() {
   if (!isOk) return;
 
   switch(state.phase) {
-
     case PHASE.MORNING:
       state.phase = PHASE.VOTE;
       break;
-
     case PHASE.VOTE:
       state.phase = PHASE.NIGHT;
       break;
-
     case PHASE.NIGHT:
       state.phase = PHASE.MORNING;
       state.day++;
@@ -278,30 +318,16 @@ function nextPhase() {
   render();
 }
 
-/* ===============================
-   勝利判定（未実装）
-================================ */
-function checkWin() {
-  // 後で実装
-}
+/* =============================== */
+function checkWin() {}
+function forceEnd() { endGame("（テスト）ゲーム終了"); }
 
-/* ===============================
-   強制終了
-================================ */
-function forceEnd() {
-  endGame("（テスト）ゲーム終了");
-}
-
-/* ===============================
-   終了処理
-================================ */
 function endGame(message) {
   state.phase = PHASE.RESULT;
   document.getElementById("phase").innerText = message;
   document.getElementById("day").innerText = "";
 }
 
-/* 初期描画 */
 render();
 
 </script>
