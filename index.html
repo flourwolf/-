@@ -27,6 +27,19 @@ input, button, textarea {
 
 .player { margin: 5px; }
 .dead { color: gray; }
+  .playerBtn {
+  display: block;
+  width: 90%;
+  max-width: 400px;
+  margin: 5px auto;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.dead {
+  background-color: #ccc;
+  color: #666;
+}
 </style>
 </head>
 
@@ -174,12 +187,31 @@ function render() {
 
     // プレイヤー一覧
     const playerList = document.getElementById("playerList");
-    playerList.innerHTML = "";
+    const playerList = document.getElementById("playerList");
+playerList.innerHTML = "";
+
+state.players.forEach((p, i) => {
+
+  const isDead = !state.alive[i];
+
+  playerList.innerHTML += `
+    <button 
+      class="playerBtn ${isDead ? "dead" : ""}"
+      onclick="onPlayerClick(${i})"
+    >
+      ${i+1}番：${p}
+    </button>
+  `;
+});
 
     state.players.forEach((p, i) => {
       const cls = state.alive[i] ? "" : "dead";
       playerList.innerHTML += `<div class="${cls}">${i+1}番：${p}</div>`;
     });
+
+    function onPlayerClick(index) {
+  console.log("クリック:", state.players[index]);
+}
 
     // 役職一覧
     const roleList = document.getElementById("roleList");
