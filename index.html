@@ -26,14 +26,11 @@ input, button, textarea {
 }
 
 .player { margin: 5px; }
-.dead { color: gray; }
-  .playerBtn {
+
+.playerBtn {
   display: block;
-  width: 90%;
-  max-width: 400px;
   margin: 5px auto;
   padding: 10px;
-  cursor: pointer;
 }
 
 .dead {
@@ -53,22 +50,20 @@ input, button, textarea {
   <div id="day"></div>
 </div>
 
-<!-- ===== 準備フェーズUI ===== -->
+<!-- ===== 準備UI ===== -->
 <div id="prepareUI" class="box">
-
-  <h2>ゲーム設定</h2>
 
   シード値<br>
   <input id="seed"><br>
 
-  参加人数（5人～）<br>
+  参加人数<br>
   <input id="count" type="number" min="5" value="5" onchange="createInputs()"><br>
 
   <div id="players"></div>
 
   <button onclick="generate()">役職生成</button>
 
-  <h3>役職一覧（GM専用）</h3>
+  <h3>役職一覧</h3>
   <div id="result"></div>
 
   <h3>PL用URL</h3>
@@ -76,33 +71,28 @@ input, button, textarea {
 
 </div>
 
-<!-- ===== 共通ゲームUI（追加） ===== -->
-<div id="gameUI" class="box">
+<!-- ===== 共通UI（安全版） ===== -->
+<div id="gameUI" class="box" style="display:none;">
 
-  <h2>ゲーム情報</h2>
-
-  <h3>プレイヤー一覧</h3>
+  <h3>プレイヤー</h3>
   <div id="playerList"></div>
-
-  <h3>役職一覧（GM専用）</h3>
-  <div id="roleList"></div>
 
   <h3>PL用URL</h3>
   <textarea id="urlDisplay" rows="3" readonly></textarea>
 
 </div>
 
-<!-- ===== 操作ボタン ===== -->
+<!-- ===== 操作 ===== -->
 <div class="box">
   <button id="startBtn" onclick="startGame()">ゲーム開始</button>
   <button id="nextBtn" onclick="nextPhase()">次のフェーズへ</button>
-  <button id="endBtn" onclick="forceEnd()">強制終了（テスト）</button>
+  <button id="endBtn" onclick="forceEnd()">強制終了</button>
 </div>
 
 <script>
 
 /* ===============================
-   フェーズ定義
+   フェーズ
 ================================ */
 const PHASE = {
   PREPARE: "準備",
@@ -120,24 +110,24 @@ let state = {
   day: 0,
   players: [],
   roles: [],
-  alive: []
+  alive: [],
+  url: ""
 };
 
 /* ===============================
-   描画
+   描画（UIのみ）
 ================================ */
 function render() {
 
-  // フェーズ表示
   document.getElementById("phase").innerText =
     `フェーズ：${state.phase}`;
 
   document.getElementById("day").innerText =
-    state.phase === PHASE.PREPARE || state.phase === PHASE.RESULT
+    (state.phase === PHASE.PREPARE || state.phase === PHASE.RESULT)
       ? ""
       : `日数：${state.day}日目`;
 
-  // ===== ボタン制御 =====
+  // ボタン制御
   const startBtn = document.getElementById("startBtn");
   const nextBtn  = document.getElementById("nextBtn");
   const endBtn   = document.getElementById("endBtn");
@@ -146,89 +136,49 @@ function render() {
     startBtn.style.display = "inline-block";
     nextBtn.style.display  = "none";
     endBtn.style.display   = "none";
-  }
-
-  else if (
-    state.phase === PHASE.MORNING ||
-    state.phase === PHASE.VOTE ||
-    state.phase === PHASE.NIGHT
-  ) {
+  } else if (state.phase === PHASE.RESULT) {
+    startBtn.style.display = "inline-block";
+    nextBtn.style.display  = "none";
+    endBtn.style.display   = "none";
+  } else {
     startBtn.style.display = "none";
     nextBtn.style.display  = "inline-block";
     endBtn.style.display   = "inline-block";
   }
 
-  else if (state.phase === PHASE.RESULT) {
-    startBtn.style.display = "inline-block";
-    nextBtn.style.display  = "none";
-    endBtn.style.display   = "none";
-  }
+  // UI切替
+  document.getElementById("prepareUI").style.display =
+    (state.phase === PHASE.PREPARE) ? "block" : "none";
 
-  // ===== 準備UI制御 =====
-  const prepareUI = document.getElementById("prepareUI");
-  prepareUI.style.display =
-    state.phase === PHASE.PREPARE ? "block" : "none";
-
-  // ===== 共通UI制御（追加） =====
   const gameUI = document.getElementById("gameUI");
+  gameUI.style.display =
+    (state.phase !== PHASE.PREPARE && state.phase !== PHASE.RESULT)
+      ? "block" : "none";
 
-  if (
-    state.phase === PHASE.MORNING ||
-    state.phase === PHASE.VOTE ||
-    state.phase === PHASE.NIGHT
-  ) {
-    gameUI.style.display = "block";
-  } else {
-    gameUI.style.display = "none";
-  }
-
-  // ===== 共通UIの中身（追加） =====
+  // 共通UI描画
   if (state.players.length > 0) {
 
-    // プレイヤー一覧
     const playerList = document.getElementById("playerList");
-    const playerList = document.getElementById("playerList");
-playerList.innerHTML = "";
-
-state.players.forEach((p, i) => {
-
-  const isDead = !state.alive[i];
-
-  playerList.innerHTML += `
-    <button 
-      class="playerBtn ${isDead ? "dead" : ""}"
-      onclick="onPlayerClick(${i})"
-    >
-      ${i+1}番：${p}
-    </button>
-  `;
-});
+    playerList.innerHTML = "";
 
     state.players.forEach((p, i) => {
-      const cls = state.alive[i] ? "" : "dead";
-      playerList.innerHTML += `<div class="${cls}">${i+1}番：${p}</div>`;
+      const btn = document.createElement("button");
+      btn.className = "playerBtn";
+
+      if (!state.alive[i]) btn.classList.add("dead");
+
+      btn.textContent = `${i+1}番：${p}`;
+      btn.onclick = () => console.log(p);
+
+      playerList.appendChild(btn);
     });
 
-    function onPlayerClick(index) {
-  console.log("クリック:", state.players[index]);
-}
-
-    // 役職一覧
-    const roleList = document.getElementById("roleList");
-    roleList.innerHTML = "";
-
-    state.players.forEach((p, i) => {
-      roleList.innerHTML += `${p} → ${state.roles[i]}<br>`;
-    });
-
-    // URL表示（使い回し）
-    document.getElementById("urlDisplay").value =
-      document.getElementById("url").value;
+    document.getElementById("urlDisplay").value = state.url;
   }
 }
 
 /* ===============================
-   プレイヤー入力欄生成
+   入力欄生成（壊さない）
 ================================ */
 function createInputs() {
   const count = Number(document.getElementById("count").value);
@@ -239,7 +189,6 @@ function createInputs() {
     div.innerHTML += `<input class="player" placeholder="プレイヤー名${i+1}">`;
   }
 }
-
 createInputs();
 
 /* ===============================
@@ -256,7 +205,7 @@ function seededRandom(seed) {
 }
 
 /* ===============================
-   役職生成
+   役職生成（安全版）
 ================================ */
 function generate() {
 
@@ -267,12 +216,8 @@ function generate() {
   const names = Array.from(inputs).map(i => i.value.trim());
 
   if (!seedText) return alert("シード値を入力してください");
-  if (names.includes("")) return alert("名前をすべて入力してください");
+  if (names.includes("")) return alert("名前を入力してください");
   if (new Set(names).size !== names.length) return alert("名前が重複しています");
-
-  let seed = 0;
-  for (let c of seedText) seed += c.charCodeAt(0);
-  const rand = seededRandom(seed);
 
   const roleConfig = {
     5:["村人","村人","村人","占い師","人狼"],
@@ -281,6 +226,15 @@ function generate() {
     8:["村人","村人","村人","村人","占い師","霊能者","人狼","人狼"],
     9:["村人","村人","村人","村人","占い師","霊能者","人狼","人狼","狂人"]
   };
+
+  if (!roleConfig[count]) {
+    alert("この人数には未対応です");
+    return;
+  }
+
+  let seed = 0;
+  for (let c of seedText) seed += c.charCodeAt(0);
+  const rand = seededRandom(seed);
 
   let roles = [...roleConfig[count]];
 
@@ -293,13 +247,7 @@ function generate() {
   state.roles = roles;
   state.alive = names.map(() => true);
 
-  const result = document.getElementById("result");
-  result.innerHTML = "";
-
-  for (let i = 0; i < count; i++) {
-    result.innerHTML += `${names[i]} → ${roles[i]}<br>`;
-  }
-
+  // URL
   const params = new URLSearchParams();
   params.set("seed", seedText);
   params.set("names", names.join(","));
@@ -308,7 +256,15 @@ function generate() {
   const url = location.origin + location.pathname.replace("index.html","") +
               "player.html?" + params.toString();
 
+  state.url = url;
   document.getElementById("url").value = url;
+
+  // 表示
+  const result = document.getElementById("result");
+  result.innerHTML = "";
+  names.forEach((n,i)=>{
+    result.innerHTML += `${n} → ${roles[i]}<br>`;
+  });
 }
 
 /* ===============================
@@ -316,7 +272,7 @@ function generate() {
 ================================ */
 function startGame() {
   if (state.players.length === 0) {
-    alert("先に役職生成をしてください");
+    alert("役職生成してください");
     return;
   }
 
@@ -330,36 +286,22 @@ function startGame() {
 ================================ */
 function nextPhase() {
 
-  const isOk = confirm(`現在：${state.phase}\n次のフェーズへ進みますか？`);
-  if (!isOk) return;
+  if (!confirm("次へ進みますか？")) return;
 
-  switch(state.phase) {
-    case PHASE.MORNING:
-      state.phase = PHASE.VOTE;
-      break;
-    case PHASE.VOTE:
-      state.phase = PHASE.NIGHT;
-      break;
-    case PHASE.NIGHT:
-      state.phase = PHASE.MORNING;
-      state.day++;
-      break;
+  if (state.phase === PHASE.MORNING) state.phase = PHASE.VOTE;
+  else if (state.phase === PHASE.VOTE) state.phase = PHASE.NIGHT;
+  else if (state.phase === PHASE.NIGHT) {
+    state.phase = PHASE.MORNING;
+    state.day++;
   }
 
-  checkWin();
   render();
 }
 
 /* =============================== */
-function checkWin() {}
-function forceEnd() { endGame("（テスト）ゲーム終了"); }
+function forceEnd(){ state.phase = PHASE.RESULT; render(); }
 
-function endGame(message) {
-  state.phase = PHASE.RESULT;
-  document.getElementById("phase").innerText = message;
-  document.getElementById("day").innerText = "";
-}
-
+/* 初期描画 */
 render();
 
 </script>
